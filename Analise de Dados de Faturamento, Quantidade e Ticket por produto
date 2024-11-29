@@ -1,0 +1,67 @@
+import win32com.client as win32 #comando para usar o integrador do python no windows e enviar um email pelo outlook
+import pandas as pd
+
+# Logica de programação
+
+# importar a base de dados
+tabela_vendas = pd.read_excel('Vendas.xlsx')
+
+
+# visualizar a base de dados
+pd.set_option('display.max_columns', None) # organizar os dados da planilha e mostrar todas as colunas
+print(tabela_vendas)
+
+# Faturamento por loja
+
+# primeiro metodo para selecionar colunas: tabela_vendas[['ID Loja', "Valor Final"]]
+
+# segundo metodo para selecionar(agrupar) colunas tabela_vendas.groupby('ID Loja').sum('Valor Final')
+
+faturamento = tabela_vendas[['ID Loja','Valor Final']].groupby('ID Loja').sum() # juntando os dois metodos o de selecionar a coluna e agrupar as colunas somando-as
+print(faturamento)
+
+# quantidade de produtos vendidos por loja
+
+Quantidade = tabela_vendas[['ID Loja', 'Quantidade']].groupby('ID Loja').sum()
+print(Quantidade)
+
+print('-' * 50) #para separar as tabelas e ajudar na visualização
+
+#tiket medio por produto em cada loja
+
+ticket_medio = (faturamento ['Valor Final'] / Quantidade['Quantidade']).to_frame() #dividi a tabela faturamento pela tabela quantidade para retirar a media - o .to_frame() serve para tornar esse comando em uma tabela. tornando dados em tabela
+ticket_medio = ticket_medio.rename(columns={0: 'Ticket Médio'})  #para mudar o nome da coluna 0 por Tiket Médio
+print(ticket_medio)
+
+
+#enviar um email com o relatório
+
+outlook = win32.Dispatch('outlook.application')
+mail = outlook.CreateItem(0)
+mail.To = 'mathausprogramador@outlook.com'
+mail.Subject = 'Relatório de Vendas por Loja'
+mail.HTMLBody = f'''
+<p>Prezados,</p>
+
+
+<p>Segue o Relatório de vendas por cada loja</p>
+
+<p>Faturamento:</p>
+
+{faturamento.to_html(formatters={'Valor Final': lambda x: f'R${x:,.2f}'})}
+
+
+<p>Quantidade Vendida:</p>
+
+{Quantidade.to_html()}
+
+<p>Ticket Medio Dos Produtos em cada loja:</p>
+
+{ticket_medio.to_html(formatters={'Ticket Médio': lambda x: f'R${x:,.2f}'})}
+
+<p>Qualquer dúvida estou a disposição.</p>
+<p>Att.,</p>
+<p>Mathaus Caricate</p>
+'''
+mail.Send()
+print('Email Enviado')
